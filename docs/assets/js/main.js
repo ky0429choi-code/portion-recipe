@@ -57,23 +57,28 @@ function showPasswordChange(message = '', voluntary = false) {
   $('#pw-current').focus();
 }
 
-async function enterApp(user) {
+/** data가 함께 오면(로그인 응답·앱 시작 시 bootstrap) 추가 요청 없이 바로 그린다. */
+async function enterApp(user, data = null) {
   state.user = user;
   if (user.mustChange) { showPasswordChange(); return; }
   $('#user-name').textContent = `${user.displayName} · ${user.role === 'ADMIN' ? '관리자' : '사용자'}`;
   applyRoleUi(user);
   show('app-view');
+  if (data) { showData(data); return; }
   await loadData();
+}
+
+function showData(data) {
+  applyData(data);
+  setBanner(`계정 로그인 · 권한 범위 자료 | 메뉴 ${state.menus.length}종 · 레시피 ${state.recipes.length}종`);
+  render();
 }
 
 async function loadData() {
   setBanner('Google Sheets에서 권한 범위 자료를 불러오는 중…');
   $('#main').innerHTML = '<div class="loading">데이터를 불러오는 중입니다.</div>';
   try {
-    const data = await api.call('bootstrap');
-    applyData(data);
-    setBanner(`계정 로그인 · 권한 범위 자료 | 메뉴 ${state.menus.length}종 · 레시피 ${state.recipes.length}종`);
-    render();
+    showData(await api.call('bootstrap'));
   } catch (e) {
     if (e.code === 'PASSWORD_CHANGE_REQUIRED') { showPasswordChange(e.message); return; }
     if (e.code === 'AUTH_REQUIRED' || e.code === 'SESSION_EXPIRED') return; // onAuthLost에서 처리
@@ -104,7 +109,7 @@ function bindAuthForms() {
       api.setToken(res.token);
       rememberId(userId.toLowerCase(), $('#login-remember').checked);
       $('#login-pw').value = '';
-      await enterApp(res.user);
+      await enterApp(res.user, res.data || null);
     } catch (e) {
       $('#login-pw').value = '';
       $('#login-error').textContent = e.message;
@@ -158,10 +163,14 @@ async function start() {
   bindAuthForms();
   api.setAuthLostHandler((e) => showLogin(e.message));
   if (!api.getToken()) { showLogin(); return; }
+  // 왕복 1회 절약: 세션 확인과 데이터 요청을 bootstrap 한 번으로 (응답에 user 포함)
+  show('app-view');
+  setBanner('불러오는 중…');
   try {
-    const res = await api.call('session');
-    await enterApp(res.user);
+    const data = await api.call('bootstrap');
+    await enterApp(data.user, data);
   } catch (e) {
+    if (e.code === 'PASSWORD_CHANGE_REQUIRED') { showPasswordChange(e.message); return; }
     if (e.code !== 'AUTH_REQUIRED' && e.code !== 'SESSION_EXPIRED') showLogin(e.message);
   }
 }

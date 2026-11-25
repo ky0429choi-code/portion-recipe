@@ -21,7 +21,7 @@ function readTable_(db, name, limit) {
   var max = limit === undefined ? MAX_ROWS : limit;
   var sh = sheet_(db, name);
   var grid = sh.getDataRange().getValues();
-  if (!grid.length) return { sheet: sh, headers: [], rows: [] };
+  if (!grid.length) return { name: name, sheet: sh, headers: [], rows: [] };
   var headers = grid[0].map(function (x) { return str_(x).trim(); });
   (REQUIRED_HEADERS[name] || []).forEach(function (key) {
     if (headers.indexOf(key) === -1) throw apiError_('CONFIG_ERROR', name + ' 필수 열 누락: ' + key);
@@ -34,7 +34,17 @@ function readTable_(db, name, limit) {
     for (var j = 0; j < headers.length; j++) if (headers[j]) obj[headers[j]] = grid[i][j];
     rows.push(obj);
   }
-  return { sheet: sh, headers: headers, rows: rows };
+  return { name: name, sheet: sh, headers: headers, rows: rows };
+}
+
+/** 계정·세션 행이 바뀌면 해당 캐시를 지워 즉시 반영되게 한다. */
+function invalidateRowCache_(table, rowObj, patch) {
+  if (table.name === DB_TAB.users) {
+    cacheDel_('usr:' + normId_(rowObj.userId));
+    if (patch && patch.userId) cacheDel_('usr:' + normId_(patch.userId));
+  } else if (table.name === DB_TAB.sessions) {
+    cacheDel_('ses:' + str_(rowObj.tokenHash));
+  }
 }
 
 function readRows_(db, name, limit) { return readTable_(db, name, limit).rows; }
@@ -44,6 +54,7 @@ function updateRow_(table, rowObj, patch) {
   var width = table.headers.length;
   var range = table.sheet.getRange(rowObj._row, 1, 1, width);
   var values = range.getValues()[0].slice();
+  invalidateRowCache_(table, rowObj, patch);
   Object.keys(patch).forEach(function (key) {
     var idx = table.headers.indexOf(key);
     if (idx >= 0) { values[idx] = safeCell_(patch[key]); rowObj[key] = patch[key]; }

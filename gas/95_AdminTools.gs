@@ -83,6 +83,17 @@ function recoverAdmin() {
   return id;
 }
 
+/** 시트를 직접 고친 내용을 바로 반영하고 싶을 때 실행(평소엔 최대 2~5분 후 자동 반영). */
+function clearCache() {
+  var db = db_(), keys = ['cfg:AUTH_MODE', 'fb'];
+  readRows_(db, DB_TAB.users, 0).forEach(function (u) { keys.push('usr:' + normId_(u.userId)); });
+  readRows_(db, DB_TAB.sessions, 0).forEach(function (s) { keys.push('ses:' + str_(s.tokenHash)); });
+  try { cache_().removeAll(keys); } catch (e) { /* 무시 */ }
+  cacheDelBig_('data');
+  Logger.log('캐시를 비웠습니다. 다음 요청부터 시트의 최신 내용을 읽습니다.');
+  return keys.length;
+}
+
 /** 모든 로그인 세션을 끊는다(분실·유출 의심 시). */
 function revokeAllSessions() {
   var n = revokeSessions_(db_(), { all: true });

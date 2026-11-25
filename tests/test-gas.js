@@ -121,13 +121,49 @@ test('없는 아이디와 틀린 비밀번호는 같은 메시지', () => {
   assert.strictEqual(a.code, b.code); assert.strictEqual(a.message, b.message);
 });
 
-test('DISABLED 전환 시 기존 세션 즉시 차단', () => {
+test('시트에서 직접 DISABLED → 캐시 만료(최대 2분) 후 차단, 로그인은 즉시 거부', () => {
   const env = freshEnv(); seedUser(env, { userId: 'syn.site', password: PW.site });
   const tok = login(env, 'syn.site', PW.site).data.token;
   assert.strictEqual(env.api('bootstrap', {}, tok).ok, true);
   setUserCell(env, 'syn.site', 'status', 'DISABLED');
+  assert.strictEqual(login(env, 'syn.site', PW.site).code, 'LOGIN_FAILED', '새 로그인은 시트를 직접 읽으므로 즉시 거부');
+  env.clearCache();
   assert.strictEqual(env.api('bootstrap', {}, tok).code, 'AUTH_REQUIRED');
-  assert.strictEqual(login(env, 'syn.site', PW.site).code, 'LOGIN_FAILED');
+});
+
+test('속도: 로그인 응답에 데이터 포함(왕복 1회 절약), 변경 필요 계정은 데이터 없음', () => {
+  const env = freshEnv(); seedUser(env, { userId: 'syn.site', password: PW.site, siteScope: 'SITE-A' });
+  const r = login(env, 'syn.site', PW.site);
+  assert.ok(r.data.data, 'data 포함'); assert.deepStrictEqual(r.data.data.menus.map((m) => m.id), ['SYN-A1']);
+  seedUser(env, { userId: 'syn.temp', password: PW.site, mustChange: true });
+  assert.strictEqual(login(env, 'syn.temp', PW.site).data.data, undefined);
+});
+
+test('속도: 두 번째 요청부터 캐시로 시트 읽기 생략', () => {
+  const env = freshEnv(); seedUser(env, { userId: 'syn.site', password: PW.site });
+  const tok = login(env, 'syn.site', PW.site).data.token;
+  env.api('bootstrap', {}, tok);
+  const before = env.sheetReads();
+  assert.strictEqual(env.api('bootstrap', {}, tok).ok, true);
+  assert.strictEqual(env.sheetReads() - before, 0, '캐시 적중 시 시트를 읽지 않음');
+});
+
+test('속도: 예전(3000회) 해시는 맞는 비밀번호로 로그인할 때 현재 설정(1000회)으로 자동 갱신', () => {
+  const env = freshEnv(); seedUser(env, { userId: 'syn.old', password: PW.site });
+  const t = env.tabs.USERS, h = t[0], row = t.find((x, i) => i && x[h.indexOf('userId')] === 'syn.old');
+  const salt = crypto.randomBytes(16);
+  row[h.indexOf('passwordHash')] = 'pbkdf2$3000$' + salt.toString('hex') + '$' + crypto.pbkdf2Sync(PW.site, salt, 3000, 32, 'sha256').toString('hex');
+  assert.strictEqual(login(env, 'syn.old', PW.site).ok, true);
+  assert.ok(userRow(env, 'syn.old').passwordHash.startsWith('pbkdf2$1000$'));
+  assert.strictEqual(login(env, 'syn.old', PW.site).ok, true);
+});
+
+test('캐시: 의견 등록은 즉시 목록에 반영', () => {
+  const env = freshEnv(); seedUser(env, { userId: 'syn.site', password: PW.site });
+  const tok = login(env, 'syn.site', PW.site).data.token;
+  env.api('bootstrap', {}, tok);
+  env.api('suggestion', { menuId: 'SYN-A1', message: '캐시 즉시 반영 확인' }, tok);
+  assert.ok(env.api('bootstrap', {}, tok).data.suggestions.some((s) => s.message === '캐시 즉시 반영 확인'));
 });
 
 test('세션 만료·로그아웃 후 토큰 무효', () => {

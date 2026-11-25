@@ -30,15 +30,18 @@ function apiLogin_(db, p) {
       throw apiError_('TEMP_EXPIRED', '임시 비밀번호 유효기간이 지났습니다. 관리자에게 재발급을 요청하세요.');
     }
 
-    updateRow_(found.table, u, { failCount: 0, lockedUntil: '', lastLoginAt: new Date(now) });
-    purgeSessions_(db);
+    var okPatch = { failCount: 0, lockedUntil: '', lastLoginAt: new Date(now) };
+    // 해시 반복 횟수 설정이 바뀌었으면(예: 3000→1000) 맞는 비밀번호로 로그인한 지금 새 설정으로 다시 저장
+    if (str_(u.passwordHash).split('$')[1] !== String(pbkdf2Iter_())) okPatch.passwordHash = hashPassword_(pw);
+    updateRow_(found.table, u, okPatch);
+    if (Math.random() < 0.1) purgeSessions_(db); // 만료 세션 정리는 가끔만(로그인 속도)
     var s = createSession_(db, id);
     audit_(db, id, 'LOGIN', '', '로그인');
-    return {
-      token: s.token, expiresAt: s.expiresAt,
-      user: { userId: id, displayName: str_(u.displayName) || id, role: roleOf_(u.role),
-        siteScope: scopeList_(u.siteScope), mustChange: bool_(u.mustChange) }
-    };
+    var ctx = ctxFromUser_(u, sha256Hex_(s.token));
+    var out = { token: s.token, expiresAt: s.expiresAt, user: publicUser_(ctx) };
+    // 왕복 1회 절약: 비밀번호 변경이 필요 없으면 데이터까지 함께 보낸다
+    if (!ctx.mustChange) out.data = apiBootstrap_(db, {}, ctx);
+    return out;
   } finally { lock.releaseLock(); }
 }
 

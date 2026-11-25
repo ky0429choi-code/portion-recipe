@@ -7,15 +7,32 @@ function getRecipes_(db) { return readRows_(db, DB_TAB.recipes).map(normalizeRec
 function getRecipeMap_(recipes) { var out = {}; recipes.forEach(function (r) { out[r.id] = r; }); return out; }
 function getPortions_(db, recipeMap) { return readRows_(db, DB_TAB.portions).map(function (m) { return normalizePortion_(m, recipeMap); }); }
 
-function apiBootstrap_(db, p, ctx) {
+/** 메뉴·레시피 전체(정규화) — 5분 캐시. 권한 필터는 요청마다 따로 적용한다. */
+function baseData_(db) {
+  var cached = cacheGetBig_('data');
+  if (cached) return cached;
   var recipes = getRecipes_(db), byRecipe = getRecipeMap_(recipes);
-  var menus = getPortions_(db, byRecipe).filter(function (m) { return canSeeSite_(ctx, m.siteId); });
+  var base = { recipes: recipes, menus: getPortions_(db, byRecipe) };
+  cachePutBig_('data', base, CACHE_TTL.DATA);
+  return base;
+}
+
+/** 최근 의견 200건 — 5분 캐시, 의견 등록 시 즉시 삭제 */
+function recentFeedback_(db) {
+  var cached = cacheGetJson_('fb');
+  if (cached) return cached;
+  var list = readRows_(db, DB_TAB.feedback).slice(-200).map(function (r) {
+    return { menuId: str_(r.menuId), message: str_(r.message), status: str_(r.status), createdAt: toMs_(r.createdAt) ? new Date(toMs_(r.createdAt)).toISOString() : '' };
+  });
+  cachePutJson_('fb', list, CACHE_TTL.FEEDBACK);
+  return list;
+}
+
+function apiBootstrap_(db, p, ctx) {
+  var base = baseData_(db), recipes = base.recipes;
+  var menus = base.menus.filter(function (m) { return canSeeSite_(ctx, m.siteId); });
   var visible = {}; menus.forEach(function (m) { visible[m.id] = true; });
-  var suggestions = readRows_(db, DB_TAB.feedback)
-    .filter(function (r) { return visible[str_(r.menuId)]; })
-    .slice(-15).map(function (r) {
-      return { menuId: str_(r.menuId), message: str_(r.message), status: str_(r.status), createdAt: toMs_(r.createdAt) ? new Date(toMs_(r.createdAt)).toISOString() : '' };
-    });
+  var suggestions = recentFeedback_(db).filter(function (r) { return visible[r.menuId]; }).slice(-15);
   return {
     mode: 'ACCOUNT', user: publicUser_(ctx), menus: menus, recipes: recipes, suggestions: suggestions,
     stats: {
@@ -38,6 +55,7 @@ function apiSuggestion_(db, p, ctx) {
       id: Utilities.getUuid(), createdAt: now, siteId: str_(menu.siteId), menuId: id,
       message: msg, status: '접수', adminNote: '', userId: ctx.userId
     });
+    cacheDel_('fb');
     audit_(db, ctx.userId, 'FEEDBACK_CREATE', id, '개선 의견 입력');
     return { createdAt: now.toISOString(), status: '접수' };
   } finally { lock.releaseLock(); }

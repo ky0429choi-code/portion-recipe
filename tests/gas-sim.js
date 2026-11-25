@@ -23,7 +23,7 @@ function makeSheet(name, grid) {
   const pad = (row) => { while (row.length < width()) row.push(''); return row; };
   return {
     getName: () => name,
-    getDataRange: () => ({ getValues: () => grid.map((r) => pad(r.slice())) }),
+    getDataRange: () => ({ getValues: () => { makeSheet.reads++; return grid.map((r) => pad(r.slice())); } }),
     getLastColumn: () => width(),
     getRange: (r, c, nr = 1, nc = 1) => ({
       getValues: () => Array.from({ length: nr }, (_, i) => pad((grid[r - 1 + i] || []).slice()).slice(c - 1, c - 1 + nc)),
@@ -49,7 +49,17 @@ function createGasEnv({ tabs, props = {} }) {
     insertSheet: (n) => { tabs[n] = []; sheets[n] = makeSheet(n, tabs[n]); return sheets[n]; }
   };
   const logs = [];
+  const store = new Map(); // CacheService 흉내 (TTL은 시험에서 clearCache로 대신)
+  const cacheApi = {
+    get: (k) => (store.has(k) ? store.get(k) : null),
+    put: (k, v) => { store.set(k, String(v)); },
+    remove: (k) => { store.delete(k); },
+    putAll: (m) => { Object.keys(m).forEach((k) => store.set(k, String(m[k]))); },
+    getAll: (keys) => { const o = {}; keys.forEach((k) => { if (store.has(k)) o[k] = store.get(k); }); return o; },
+    removeAll: (keys) => { keys.forEach((k) => store.delete(k)); }
+  };
   const ctx = {
+    CacheService: { getScriptCache: () => cacheApi },
     console: { log: () => {}, error: (m) => logs.push('ERROR ' + m) },
     Logger: { log: (m) => logs.push(String(m)) },
     PropertiesService: { getScriptProperties: () => ({ getProperty: (k) => (k in props ? props[k] : null) }) },
@@ -71,7 +81,9 @@ function createGasEnv({ tabs, props = {} }) {
   const run = (fnName, ...args) => { ctx.__args = args; return vm.runInContext(`${fnName}.apply(null, __args)`, ctx); };
   const raw = (body) => JSON.parse(run('doPost', { postData: { contents: body } }).getContent());
   const api = (action, payload, token) => raw(JSON.stringify({ action, payload, token }));
-  return { ctx, run, api, raw, tabs, logs, props };
+  const clearCache = () => store.clear(); // 캐시 만료(최대 2~5분 후)를 흉내
+  const sheetReads = () => makeSheet.reads;
+  return { ctx, run, api, raw, tabs, logs, props, clearCache, sheetReads, cacheStore: store };
 }
 
 /** 합성 시험 데이터: 사업장 A/B + 지역 미배정 메뉴, 레시피 2종(1종은 기준 인분 없음) */
@@ -104,5 +116,7 @@ function seedUser(env, { userId, password, displayName = userId, role = 'USER', 
   };
   t.push(h.map((k) => sheetValue(rec[k])));
 }
+
+makeSheet.reads = 0;
 
 module.exports = { createGasEnv, syntheticTabs, seedUser };
