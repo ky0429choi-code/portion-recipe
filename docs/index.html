@@ -10,6 +10,12 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <meta name="theme-color" content="#6440df">
+<!-- iPhone: 홈 화면에 추가 시 아이콘·이름·전체화면 -->
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="인당량">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="stylesheet" href="assets/css/app.css">
 <script type="module" src="assets/js/main.js"></script>
 </head>
@@ -28,6 +34,8 @@
     <p id="login-error" class="auth-error" role="alert"></p>
     <button class="primary wide" id="login-submit" type="submit">로그인</button>
     <p class="hint">계정 발급·비밀번호 재설정은 관리자에게 요청하세요.</p>
+    <button class="secondary wide install-btn" type="button" hidden>📲 휴대폰에 앱으로 설치</button>
+    <p class="hint ios-hint" hidden>iPhone: Safari 하단 <b>공유(□↑)</b> → <b>홈 화면에 추가</b>를 누르면 앱처럼 설치됩니다.</p>
   </form>
 </section>
 
@@ -72,6 +80,7 @@
         </div>
         <div class="user-box">
           <span class="pill" id="user-name">—</span>
+          <button class="secondary small install-btn" type="button" hidden>📲 앱 설치</button>
           <button class="secondary small" id="change-pw" type="button">비밀번호 변경</button>
           <button class="secondary small" id="logout" type="button">로그아웃</button>
         </div>

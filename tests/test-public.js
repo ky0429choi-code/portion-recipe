@@ -24,6 +24,7 @@ const files = walk(ROOT);
 for (const f of files) {
   const rel = path.relative(ROOT, f);
   if (!ALLOWED_EXT.has(path.extname(f).toLowerCase())) { problems.push(`${rel}: 공개 폴더에 허용되지 않는 파일 형식`); continue; }
+  if (path.extname(f).toLowerCase() === '.png') continue; // 아이콘 이미지는 문자열 검사 제외
   if (/실데이터|회사자료|\.xlsx$|\.csv$/i.test(rel)) problems.push(`${rel}: 실데이터로 보이는 파일명`);
   const text = fs.readFileSync(f, 'utf8');
   for (const [name, re, applies] of RULES) {

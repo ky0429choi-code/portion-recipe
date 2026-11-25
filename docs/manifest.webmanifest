@@ -2,13 +2,18 @@
   "id": "./",
   "name": "인당량 · 레시피",
   "short_name": "인당량",
+  "description": "화성지역 인당량 가이드 · 통합 레시피",
   "lang": "ko",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#f7f8fc",
   "theme_color": "#6440df",
   "icons": [
+    { "src": "./icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "./icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "./icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
     { "src": "./icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
   ]
 }

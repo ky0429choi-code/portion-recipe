@@ -6,6 +6,7 @@ import * as api from './api.js';
 import { render, bindNav, setRenderHandlers } from './render.js';
 import { resetAdmin } from './admin.js';
 import { DEMO_DATA } from './demo-data.js';
+import { initInstall } from './install.js';
 
 const VIEWS = ['login-view', 'pw-view', 'app-view'];
 function show(view) { VIEWS.forEach((id) => { $('#' + id).hidden = id !== view; }); }
@@ -126,6 +127,7 @@ function bindAuthForms() {
 }
 
 async function start() {
+  initInstall();
   bindNav();
   setRenderHandlers({ onSuggestion: submitSuggestion });
 
