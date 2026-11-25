@@ -36,8 +36,8 @@
   <form id="pw-form" class="auth-card" novalidate>
     <div class="auth-brand">WELLSTORY BOS</div>
     <h1>비밀번호 변경</h1>
-    <p class="sub">처음 로그인했거나 재발급을 받은 경우 새 비밀번호를 정해야 이용할 수 있습니다.</p>
-    <label for="pw-current">현재(임시) 비밀번호</label>
+    <p class="sub" id="pw-desc">처음 로그인했거나 재발급을 받은 경우 새 비밀번호를 정해야 이용할 수 있습니다.</p>
+    <label for="pw-current" id="pw-current-label">현재(임시) 비밀번호</label>
     <input id="pw-current" type="password" autocomplete="current-password" maxlength="128" required>
     <label for="pw-new">새 비밀번호</label>
     <input id="pw-new" type="password" autocomplete="new-password" maxlength="128" required>
@@ -46,6 +46,7 @@
     <p class="hint">4자 이상 (숫자만도 가능), 공백·아이디 포함 불가</p>
     <p id="pw-error" class="auth-error" role="alert"></p>
     <button class="primary wide" id="pw-submit" type="submit">변경하고 시작하기</button>
+    <button class="linkish" id="pw-cancel" type="button" hidden>취소하고 돌아가기</button>
     <button class="linkish" id="pw-logout" type="button">로그아웃</button>
   </form>
 </section>
@@ -59,6 +60,7 @@
         <button data-tab="portion" class="active">▤ 인당량</button>
         <button data-tab="recipes">▣ 통합 레시피</button>
         <button data-tab="manage">◫ 확인 항목</button>
+        <button data-tab="admin" class="admin-only" hidden>⚙ 계정 관리</button>
       </nav>
       <small id="side-note">계정 로그인 · 권한 범위 내 자료</small>
     </aside>
@@ -70,6 +72,7 @@
         </div>
         <div class="user-box">
           <span class="pill" id="user-name">—</span>
+          <button class="secondary small" id="change-pw" type="button">비밀번호 변경</button>
           <button class="secondary small" id="logout" type="button">로그아웃</button>
         </div>
       </header>
@@ -77,10 +80,11 @@
       <main id="main"><div class="loading">데이터를 불러오는 중입니다.</div></main>
     </div>
   </div>
-  <nav class="bottom">
+  <nav class="bottom" id="bottom-nav">
     <button data-tab="portion" class="active">▤ 인당량</button>
     <button data-tab="recipes">▣ 레시피</button>
     <button data-tab="manage">◫ 확인</button>
+    <button data-tab="admin" class="admin-only" hidden>⚙ 계정</button>
   </nav>
 </div>
 

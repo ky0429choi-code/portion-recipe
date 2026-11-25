@@ -185,6 +185,92 @@ test('수식 주입 방지: = 로 시작하는 의견은 텍스트로 저장', (
   assert.ok(sent[0].includes('\'=IMPORTXML("http://x")'), '시트로 보낼 때 앞에 \' 를 붙여 수식 실행 방지');
 });
 
+// ---------- 관리자 화면 API ----------
+function adminEnv() {
+  const env = freshEnv(); env.tabs.USERS.splice(1);
+  seedUser(env, { userId: 'boss', password: 'Boss-1234', role: 'ADMIN', siteScope: '*' });
+  seedUser(env, { userId: 'staff', password: 'Staff-1234', role: 'USER', siteScope: 'SITE-A' });
+  return { env, admin: login(env, 'boss', 'Boss-1234').data.token, user: login(env, 'staff', 'Staff-1234').data.token };
+}
+
+test('관리자 API: 일반 사용자·비로그인은 모두 거부', () => {
+  const { env, user } = adminEnv();
+  ['adminListUsers', 'adminCreateUser', 'adminUpdateUser', 'adminResetPassword', 'adminSetStatus', 'adminUnlock'].forEach((a) => {
+    assert.strictEqual(env.api(a, { userId: 'boss', password: 'Hack-1234', status: 'DISABLED', role: 'USER' }, user).code, 'FORBIDDEN', a);
+    assert.strictEqual(env.api(a, {}).code, 'AUTH_REQUIRED', a);
+  });
+  assert.strictEqual(userRow(env, 'boss').status, 'ACTIVE');
+});
+
+test('관리자 API: 목록에 해시·토큰 없음', () => {
+  const { env, admin } = adminEnv();
+  const r = env.api('adminListUsers', {}, admin);
+  assert.strictEqual(r.ok, true); assert.strictEqual(r.data.users.length, 2);
+  assert.ok(!/pbkdf2\$|passwordHash|tokenHash/.test(JSON.stringify(r)));
+});
+
+test('관리자 API: 계정 생성 → 그 비밀번호로 로그인 → 변경 요구', () => {
+  const { env, admin } = adminEnv();
+  assert.strictEqual(env.api('adminCreateUser', { userId: 'Bad Id!', password: '1234' }, admin).code, 'INVALID_INPUT');
+  assert.strictEqual(env.api('adminCreateUser', { userId: 'staff', password: '1234' }, admin).code, 'DUPLICATE');
+  assert.strictEqual(env.api('adminCreateUser', { userId: 'new.one', password: '12' }, admin).code, 'WEAK_PASSWORD');
+  assert.strictEqual(env.api('adminCreateUser', { userId: 'new.one', password: '5678', siteScope: 'SITE A' }, admin).code, 'INVALID_INPUT');
+  const c = env.api('adminCreateUser', { userId: 'New.One', displayName: '새 직원', role: 'USER', siteScope: 'SITE-B', password: '5678', mustChange: true }, admin);
+  assert.strictEqual(c.ok, true, JSON.stringify(c)); assert.strictEqual(c.data.user.userId, 'new.one');
+  assert.ok(!JSON.stringify(env.tabs.USERS).includes('"5678"'), '시트에 원문 없음');
+  const l = login(env, 'new.one', '5678'); assert.strictEqual(l.ok, true); assert.strictEqual(l.data.user.mustChange, true);
+  assert.strictEqual(env.api('bootstrap', {}, l.data.token).code, 'PASSWORD_CHANGE_REQUIRED');
+  assert.ok(env.tabs.AUDIT_LOG.some((r) => r[2] === 'boss' && r[3] === 'ADMIN_USER_CREATE'));
+});
+
+test('관리자 API: 비밀번호 지정 시 대상의 기존 로그인 끊김, 새 비밀번호로만 로그인', () => {
+  const { env, admin, user } = adminEnv();
+  assert.strictEqual(env.api('bootstrap', {}, user).ok, true);
+  assert.strictEqual(env.api('adminResetPassword', { userId: 'staff', password: '9090', mustChange: false }, admin).ok, true);
+  assert.strictEqual(env.api('bootstrap', {}, user).code, 'SESSION_EXPIRED');
+  assert.strictEqual(login(env, 'staff', 'Staff-1234').code, 'LOGIN_FAILED');
+  const l = login(env, 'staff', '9090'); assert.strictEqual(l.ok, true); assert.strictEqual(l.data.user.mustChange, false);
+});
+
+test('관리자 API: 정지·재개, 자기 정지 불가, 마지막 관리자 보호', () => {
+  const { env, admin, user } = adminEnv();
+  assert.strictEqual(env.api('adminSetStatus', { userId: 'staff', status: 'DISABLED' }, admin).ok, true);
+  assert.strictEqual(env.api('bootstrap', {}, user).code, 'SESSION_EXPIRED');
+  assert.strictEqual(env.api('adminSetStatus', { userId: 'staff', status: 'ACTIVE' }, admin).ok, true);
+  assert.strictEqual(login(env, 'staff', 'Staff-1234').ok, true);
+  assert.strictEqual(env.api('adminSetStatus', { userId: 'boss', status: 'DISABLED' }, admin).code, 'SELF_DISABLE');
+  assert.strictEqual(env.api('adminUpdateUser', { userId: 'boss', role: 'USER' }, admin).code, 'LAST_ADMIN');
+  assert.strictEqual(env.api('adminUpdateUser', { userId: 'staff', role: 'ADMIN', siteScope: 'SITE-A,SITE-B', displayName: '현장 관리자' }, admin).ok, true);
+  assert.strictEqual(env.api('adminUpdateUser', { userId: 'boss', role: 'USER' }, admin).ok, true, '다른 관리자가 있으면 해제 가능');
+  assert.strictEqual(userRow(env, 'staff').siteScope, 'SITE-A,SITE-B');
+});
+
+test('관리자 API: 잠금 해제', () => {
+  const { env, admin } = adminEnv();
+  for (let i = 0; i < 5; i++) login(env, 'staff', 'nope-0000');
+  assert.strictEqual(login(env, 'staff', 'Staff-1234').code, 'LOGIN_LOCKED');
+  assert.strictEqual(env.api('adminListUsers', {}, admin).data.users.find((u) => u.userId === 'staff').locked, true);
+  assert.strictEqual(env.api('adminUnlock', { userId: 'staff' }, admin).ok, true);
+  assert.strictEqual(login(env, 'staff', 'Staff-1234').ok, true);
+});
+
+test('recoverAdmin: 계정 1개면 그 계정을 관리자·사용으로 복구하고 임시 비밀번호 발급', () => {
+  const env = freshEnv(); env.tabs.USERS.splice(1);
+  seedUser(env, { userId: 'ky.test', password: 'Old-1234', role: 'user', status: 'PENDING' });
+  assert.strictEqual(env.run('recoverAdmin'), 'ky.test');
+  const line = env.logs.find((l) => l.startsWith('[관리자 복구]'));
+  const temp = line.split('임시 비밀번호: ')[1].split(' ')[0];
+  const row = userRow(env, 'ky.test');
+  assert.strictEqual(row.role, 'ADMIN'); assert.strictEqual(row.status, 'ACTIVE');
+  assert.strictEqual(login(env, 'ky.test', 'Old-1234').code, 'LOGIN_FAILED');
+  const l = login(env, 'ky.test', temp); assert.strictEqual(l.ok, true); assert.strictEqual(l.data.user.role, 'ADMIN');
+  // 계정이 여러 개이고 ADMIN_USER_ID가 없으면 아무것도 바꾸지 않음
+  seedUser(env, { userId: 'other', password: 'Other-1234' });
+  const before = JSON.stringify(env.tabs.USERS);
+  assert.strictEqual(env.run('recoverAdmin'), null);
+  assert.strictEqual(JSON.stringify(env.tabs.USERS), before);
+});
+
 let fail = 0;
 for (const [s, n, m] of results) { console.log(`${s}  ${n}${m ? '  → ' + m : ''}`); if (s === 'FAIL') fail++; }
 console.log(`\nGAS 시험: ${results.length - fail} PASS / ${fail} FAIL`);

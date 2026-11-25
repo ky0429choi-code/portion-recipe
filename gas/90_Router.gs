@@ -17,7 +17,14 @@ function routes_() {
     session: apiSession_,
     changePassword: apiChangePassword_,
     bootstrap: apiBootstrap_,
-    suggestion: apiSuggestion_
+    suggestion: apiSuggestion_,
+    // 관리자 화면 (각 함수 안에서 ADMIN 권한 확인)
+    adminListUsers: apiAdminListUsers_,
+    adminCreateUser: apiAdminCreateUser_,
+    adminUpdateUser: apiAdminUpdateUser_,
+    adminResetPassword: apiAdminResetPassword_,
+    adminSetStatus: apiAdminSetStatus_,
+    adminUnlock: apiAdminUnlock_
   };
 }
 

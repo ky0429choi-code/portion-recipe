@@ -54,6 +54,18 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px soli
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#273348;color:#fff;border-radius:10px;padding:11px 18px;display:none;z-index:9}
 .toast.on{display:block}.loading{padding:40px;text-align:center;color:var(--muted)}
 
+/* 계정 관리(관리자) */
+.form-grid{display:grid;gap:10px;max-width:520px}
+.form-grid label{display:grid;gap:5px;font-size:13px;font-weight:650;color:#344054}
+.form-grid input,.form-grid select{width:100%;padding:10px;border:1px solid #d7ddeb;border-radius:9px;font-size:14px;font-weight:400;background:#fff}
+.form-grid label.check{display:flex;align-items:center;gap:8px;font-weight:500}
+.form-grid label.check input{width:auto}
+.badge{white-space:nowrap;font-size:11px;font-weight:750;border-radius:999px;padding:4px 9px;background:#eef2f6;color:#475467}
+.badge.st-active{background:#e7f8ef;color:#067647}.badge.st-disabled{background:#fdecec;color:#b42318}.badge.st-pending{background:#fff4dc;color:#93590b}
+.danger{background:#fff;border:1px solid #f1b5b0;color:#b42318;border-radius:9px;padding:11px 16px;font-weight:700}
+.row.wrap{flex-wrap:wrap}
+.listtop .primary{width:100%}
+
 /* 로그인·비밀번호 변경 */
 .auth{min-height:100dvh;display:grid;place-items:center;padding:20px;background:linear-gradient(160deg,#101d34 0%,#2a2163 100%)}
 .auth-card{width:min(400px,100%);background:#fff;border-radius:18px;padding:30px 26px;display:grid;gap:8px;box-shadow:0 20px 60px #0005}
@@ -71,6 +83,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px soli
 .back{display:block;border:0;background:none;color:var(--purple);font-weight:700;margin-bottom:10px;padding:8px 0}
 .metrics{grid-template-columns:1fr 1fr 1fr;gap:5px}.metric{padding:10px 7px}.metric label{font-size:10px}.metric strong{font-size:17px}.metric.em{grid-column:auto}.metric input{font-size:13px}
 .bottom{position:fixed;bottom:0;inset-inline:0;display:grid;grid-template-columns:repeat(3,1fr);background:#fff;border-top:1px solid var(--line);padding:7px 8px max(9px,env(safe-area-inset-bottom));z-index:6}
+.bottom.four{grid-template-columns:repeat(4,1fr)}
 .bottom button{border:0;background:none;color:var(--muted);padding:8px;font-size:12px}.bottom button.active{color:var(--purple);font-weight:800}
 .content{padding:14px}.header .pill{font-size:10px}}
 @media(prefers-reduced-motion:no-preference){button{transition:background .17s,color .17s,transform .17s}.primary:active{transform:scale(.98)}}

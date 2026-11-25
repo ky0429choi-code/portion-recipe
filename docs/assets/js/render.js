@@ -2,6 +2,7 @@
 import { state } from './state.js';
 import { $, $$, esc, flash, validServings } from './util.js';
 import { filteredMenus, menuRows, recipeRows, menuDetail, recipeDetail, manageView, ingredientLines, menuTotal } from './views.js';
+import { renderAdmin } from './admin.js';
 
 let handlers = { onSuggestion: async () => {} };
 export const setRenderHandlers = (h) => { handlers = { ...handlers, ...h }; };
@@ -27,6 +28,8 @@ export function render() {
     main.innerHTML = panel('통합 레시피', 'recipeSearch', state.recipeSearch, '레시피명 또는 사업장 검색', recipeRows(), recipeDetail(), '<div class="sub">레시피 원본 · 메뉴 연결은 확정된 경우만 표시</div>');
     $('#recipeSearch').oninput = (e) => { state.recipeSearch = e.target.value; $('#items').innerHTML = recipeRows(); bindRecipeRows(); };
     bindRecipeRows(); bindDetail();
+  } else if (state.tab === 'admin') {
+    renderAdmin(true);
   } else {
     main.innerHTML = manageView();
     $$('[data-menu-id]').forEach((b) => { b.onclick = () => { state.tab = 'portion'; state.selected = b.dataset.menuId; render(); }; });

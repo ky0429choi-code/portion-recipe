@@ -2,7 +2,10 @@
  * 관리자 도구 — Apps Script 편집기에서 직접 [실행]하는 함수들.
  * 라우터(90_Router)에 등록되지 않으므로 외부(GitHub Pages)에서는 호출할 수 없다.
  *
- * 계정 운영 흐름
+ * ★ 평소 계정 관리는 앱의 [계정 관리] 탭(관리자 전용)에서 한다. 아래 함수는 초기 설정·비상 복구용.
+ *    관리자로 들어갈 수 없을 때 → recoverAdmin() 한 번 실행
+ *
+ * 계정 운영 흐름(편집기 방식)
  *  1) setupV3()            : USERS·SESSIONS 탭과 CONFIG AUTH_MODE를 (없을 때만) 만든다.
  *  2) USERS 탭에 행 추가    : userId, displayName, role(ADMIN/USER), siteScope(* 또는 사업장ID 쉼표), status=PENDING
  *  3) issueTempPasswords() : PENDING 계정에 임시 비밀번호 발급 → 실행 로그에서 확인해 본인에게 전달
@@ -50,8 +53,34 @@ function issueTempPasswords() {
     Logger.log('[임시 비밀번호] ' + id + ' : ' + pw + '  (72시간 내 첫 로그인 후 변경)');
     issued.push(id);
   });
-  if (!issued.length) Logger.log('PENDING 상태 계정이 없습니다.');
+  if (!issued.length) Logger.log('PENDING 상태 계정이 없습니다. USERS 탭의 status를 PENDING으로 바꾼 뒤 다시 실행하거나, 관리자 복구는 recoverAdmin()을 실행하세요.');
   return issued.length;
+}
+
+/**
+ * 관리자 복구 — 관리자 비밀번호를 잊었거나 관리자 권한이 없어졌을 때 편집기에서 한 번 실행.
+ * 대상: 스크립트 속성 ADMIN_USER_ID에 적힌 계정. 속성이 없거나 그 아이디가 없으면, USERS에 계정이 하나뿐일 때 그 계정.
+ * 결과: 권한 ADMIN · 상태 ACTIVE · 잠금 해제 · 새 임시 비밀번호(실행 로그) · 기존 로그인 종료.
+ */
+function recoverAdmin() {
+  var db = db_(), t = readTable_(db, DB_TAB.users, 0);
+  var rows = t.rows.filter(function (u) { return normId_(u.userId); });
+  var wanted = normId_(PropertiesService.getScriptProperties().getProperty('ADMIN_USER_ID'));
+  // 지정 아이디가 있으면 그 계정, 없거나(이름이 바뀐 경우 등) 못 찾으면 계정이 하나뿐일 때 그 계정
+  var target = (wanted && rows.filter(function (u) { return normId_(u.userId) === wanted; })[0]) || (rows.length === 1 ? rows[0] : null);
+  if (!target) {
+    Logger.log('대상 계정을 정할 수 없습니다. 스크립트 속성 ADMIN_USER_ID에 복구할 아이디를 넣고 다시 실행하세요. (현재 계정 ' + rows.length + '개)');
+    return null;
+  }
+  var id = normId_(target.userId), pw = tempPassword_();
+  updateRow_(t, target, {
+    userId: id, role: ROLES.ADMIN, status: 'ACTIVE', siteScope: str_(target.siteScope) || '*',
+    passwordHash: hashPassword_(pw), mustChange: 'TRUE', passwordSetAt: new Date(), failCount: 0, lockedUntil: ''
+  });
+  revokeSessions_(db, { userId: id });
+  audit_(db, 'ADMIN_EDITOR', 'ADMIN_RECOVER', id, '관리자 복구');
+  Logger.log('[관리자 복구] 아이디: ' + id + '   임시 비밀번호: ' + pw + '   (72시간 안에 로그인 → 새 비밀번호로 변경)');
+  return id;
 }
 
 /** 모든 로그인 세션을 끊는다(분실·유출 의심 시). */
