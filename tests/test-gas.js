@@ -50,7 +50,7 @@ test('임시 비밀번호 발급 → 로그인 → 변경 전 데이터 차단 �
   assert.strictEqual(r.data.user.mustChange, true);
   const tok = r.data.token;
   assert.strictEqual(env.api('bootstrap', {}, tok).code, 'PASSWORD_CHANGE_REQUIRED');
-  assert.strictEqual(env.api('changePassword', { currentPassword: temp, newPassword: 'short1' }, tok).code, 'WEAK_PASSWORD');
+  assert.strictEqual(env.api('changePassword', { currentPassword: temp, newPassword: 'abc' }, tok).code, 'WEAK_PASSWORD');
   assert.strictEqual(env.api('changePassword', { currentPassword: temp, newPassword: 'syn.admin-2026X' }, tok).code, 'WEAK_PASSWORD');
   assert.strictEqual(env.api('changePassword', { currentPassword: 'wrong', newPassword: PW.admin }, tok).code, 'WRONG_PASSWORD');
   const c = env.api('changePassword', { currentPassword: temp, newPassword: PW.admin }, tok);
@@ -59,6 +59,16 @@ test('임시 비밀번호 발급 → 로그인 → 변경 전 데이터 차단 �
   assert.strictEqual(b.ok, true);
   assert.strictEqual(b.data.menus.length, 3, '관리자(*)는 전체 메뉴');
   assert.strictEqual(login(env, 'syn.admin', temp).code, 'LOGIN_FAILED', '임시 비밀번호는 더 이상 사용 불가');
+});
+
+test('비밀번호 규칙: 4자 이상 숫자만 허용, 3자·공백 거부, 변경 후 새 비밀번호로 로그인', () => {
+  const env = freshEnv(); seedUser(env, { userId: 'syn.pin', password: PW.site });
+  const tok = login(env, 'syn.pin', PW.site).data.token;
+  assert.strictEqual(env.api('changePassword', { currentPassword: PW.site, newPassword: '123' }, tok).code, 'WEAK_PASSWORD');
+  assert.strictEqual(env.api('changePassword', { currentPassword: PW.site, newPassword: '12 34' }, tok).code, 'WEAK_PASSWORD');
+  assert.strictEqual(env.api('changePassword', { currentPassword: PW.site, newPassword: '4821' }, tok).ok, true);
+  assert.strictEqual(login(env, 'syn.pin', PW.site).code, 'LOGIN_FAILED');
+  assert.strictEqual(login(env, 'syn.pin', '4821').ok, true);
 });
 
 test('토큰 없음·위조·형식 오류 → AUTH_REQUIRED', () => {

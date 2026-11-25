@@ -22,7 +22,7 @@ var AUTH = Object.freeze({
   MAX_FAIL: 5,            // 연속 실패 허용 횟수
   LOCK_MIN: 15,           // 잠금 시간(분)
   PBKDF2_ITER: 3000,      // 기본 해시 반복 횟수 (Script Property PBKDF2_ITER로 조정)
-  MIN_PW_LEN: 10,
+  MIN_PW_LEN: 4,          // 사용자 요청(2026-11-25): 4자리부터 허용. 무차별 대입은 5회 잠금으로 제한
   TEMP_PW_HOURS: 72       // 임시 비밀번호 유효 시간
 });
 

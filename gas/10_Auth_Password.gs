@@ -36,8 +36,7 @@ function checkPasswordPolicy_(pw, userId) {
   pw = str_(pw);
   if (pw.length < AUTH.MIN_PW_LEN || pw.length > 128)
     throw apiError_('WEAK_PASSWORD', '비밀번호는 ' + AUTH.MIN_PW_LEN + '~128자로 입력하세요.');
-  if (!/[A-Za-z]/.test(pw) || !/[0-9]/.test(pw))
-    throw apiError_('WEAK_PASSWORD', '비밀번호에 영문과 숫자를 함께 포함하세요.');
+  if (/\s/.test(pw)) throw apiError_('WEAK_PASSWORD', '비밀번호에 공백을 넣을 수 없습니다.');
   if (userId && pw.toLowerCase().indexOf(normId_(userId)) >= 0)
     throw apiError_('WEAK_PASSWORD', '비밀번호에 아이디를 포함할 수 없습니다.');
 }
