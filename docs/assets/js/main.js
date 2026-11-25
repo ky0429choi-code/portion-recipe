@@ -12,6 +12,9 @@ const VIEWS = ['login-view', 'pw-view', 'app-view'];
 
 /** [아이디 저장] — 아이디만 이 기기(localStorage)에 보관. 비밀번호·토큰은 저장하지 않는다. */
 const REMEMBER_KEY = 'portion_guide_saved_id';
+const KEEP_PREF_KEY = 'portion_guide_keep_login'; // 체크 상태만 기억(토큰 아님)
+const keepPref = () => { try { return localStorage.getItem(KEEP_PREF_KEY) === '1'; } catch { return false; } };
+function setKeepPref(on) { try { if (on) localStorage.setItem(KEEP_PREF_KEY, '1'); else localStorage.removeItem(KEEP_PREF_KEY); } catch { /* 무시 */ } }
 const savedId = () => { try { return localStorage.getItem(REMEMBER_KEY) || ''; } catch { return ''; } };
 function rememberId(userId, on) {
   try { if (on) localStorage.setItem(REMEMBER_KEY, userId); else localStorage.removeItem(REMEMBER_KEY); } catch { /* 저장소 차단 시 무시 */ }
@@ -38,6 +41,7 @@ function showLogin(message = '') {
   $('#login-error').textContent = message;
   const id = savedId();
   $('#login-remember').checked = Boolean(id);
+  $('#login-keep').checked = keepPref();
   if (id) $('#login-id').value = id;
   show('login-view');
   (id ? $('#login-pw') : $('#login-id')).focus();
@@ -106,7 +110,9 @@ function bindAuthForms() {
     btn.disabled = true; btn.textContent = '확인 중…'; $('#login-error').textContent = '';
     try {
       const res = await api.call('login', { userId, password });
-      api.setToken(res.token);
+      const keep = $('#login-keep').checked;
+      api.setToken(res.token, keep);
+      setKeepPref(keep);
       rememberId(userId.toLowerCase(), $('#login-remember').checked);
       $('#login-pw').value = '';
       await enterApp(res.user, res.data || null);

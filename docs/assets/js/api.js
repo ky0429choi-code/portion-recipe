@@ -12,9 +12,22 @@ export class ApiError extends Error {
   constructor(code, message) { super(message); this.code = code; }
 }
 
-export const getToken = () => sessionStorage.getItem(TOKEN_KEY) || '';
-export const setToken = (t) => sessionStorage.setItem(TOKEN_KEY, t);
-export const clearToken = () => sessionStorage.removeItem(TOKEN_KEY);
+/**
+ * 토큰 보관 위치
+ *  - 기본: sessionStorage (앱·탭을 닫으면 로그아웃)
+ *  - [로그인 상태 유지]: localStorage (앱을 닫아도 유지, 서버 만료 8시간까지)
+ * 어느 경우든 서버가 만료·정지·로그아웃을 판단하므로 유출 시 관리자 정지로 즉시 무효화된다.
+ */
+const safe = (fn, fallback = '') => { try { return fn(); } catch { return fallback; } };
+export const getToken = () => safe(() => sessionStorage.getItem(TOKEN_KEY) || localStorage.getItem(TOKEN_KEY) || '');
+export function setToken(t, keep = false) {
+  clearToken();
+  safe(() => (keep ? localStorage : sessionStorage).setItem(TOKEN_KEY, t));
+}
+export function clearToken() {
+  safe(() => sessionStorage.removeItem(TOKEN_KEY));
+  safe(() => localStorage.removeItem(TOKEN_KEY));
+}
 export const setAuthLostHandler = (fn) => { onAuthLost = fn; };
 
 export async function call(action, payload = {}) {
