@@ -9,6 +9,13 @@ import { DEMO_DATA } from './demo-data.js';
 import { initInstall } from './install.js';
 
 const VIEWS = ['login-view', 'pw-view', 'app-view'];
+
+/** [아이디 저장] — 아이디만 이 기기(localStorage)에 보관. 비밀번호·토큰은 저장하지 않는다. */
+const REMEMBER_KEY = 'portion_guide_saved_id';
+const savedId = () => { try { return localStorage.getItem(REMEMBER_KEY) || ''; } catch { return ''; } };
+function rememberId(userId, on) {
+  try { if (on) localStorage.setItem(REMEMBER_KEY, userId); else localStorage.removeItem(REMEMBER_KEY); } catch { /* 저장소 차단 시 무시 */ }
+}
 function show(view) { VIEWS.forEach((id) => { $('#' + id).hidden = id !== view; }); }
 
 function setBanner(text, demo = false) { const b = $('#banner'); b.textContent = text; b.classList.toggle('demo', demo); }
@@ -29,8 +36,11 @@ function showLogin(message = '') {
   $('#main').innerHTML = '';
   $('#login-pw').value = '';
   $('#login-error').textContent = message;
+  const id = savedId();
+  $('#login-remember').checked = Boolean(id);
+  if (id) $('#login-id').value = id;
   show('login-view');
-  $('#login-id').focus();
+  (id ? $('#login-pw') : $('#login-id')).focus();
 }
 
 /** voluntary=true: 로그인한 사용자가 [비밀번호 변경]을 누른 경우(취소 가능) */
@@ -92,6 +102,7 @@ function bindAuthForms() {
     try {
       const res = await api.call('login', { userId, password });
       api.setToken(res.token);
+      rememberId(userId.toLowerCase(), $('#login-remember').checked);
       $('#login-pw').value = '';
       await enterApp(res.user);
     } catch (e) {

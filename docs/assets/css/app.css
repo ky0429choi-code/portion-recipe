@@ -73,6 +73,9 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px soli
 .auth-card h1{font-size:21px;margin:2px 0 0}
 .auth-card label{font-size:13px;font-weight:650;margin-top:8px}
 .auth-card input{width:100%;padding:12px;border:1px solid #d7ddeb;border-radius:10px;font-size:15px}
+.auth-card label.remember{display:flex;align-items:center;gap:8px;font-weight:500;margin-top:10px;cursor:pointer}
+.auth-card label.remember input{width:18px;height:18px;padding:0;margin:0;accent-color:var(--purple)}
+.auth-card label.remember small{color:var(--muted);font-size:11px}
 .auth-error{min-height:1.2em;margin:4px 0 0;color:#b42318;font-size:13px}
 .hint{color:var(--muted);font-size:12px;margin:2px 0}
 
