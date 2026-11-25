@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' https://script.google.com https://script.googleusercontent.com; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex,nofollow">
+<title>화성지역 인당량 가이드</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#6440df">
+<link rel="stylesheet" href="assets/css/app.css">
+<script type="module" src="assets/js/main.js"></script>
+</head>
+<body>
+
+<!-- 1) 로그인: GitHub에는 이 화면 틀만 있고, 데이터는 로그인 후 GAS에서 받아 온다 -->
+<section id="login-view" class="auth" hidden>
+  <form id="login-form" class="auth-card" novalidate>
+    <div class="auth-brand">WELLSTORY BOS</div>
+    <h1>인당량 가이드 · 통합 레시피</h1>
+    <p class="sub">인가된 계정만 접속할 수 있습니다.</p>
+    <label for="login-id">아이디</label>
+    <input id="login-id" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="64" required>
+    <label for="login-pw">비밀번호</label>
+    <input id="login-pw" name="password" type="password" autocomplete="current-password" maxlength="128" required>
+    <p id="login-error" class="auth-error" role="alert"></p>
+    <button class="primary wide" id="login-submit" type="submit">로그인</button>
+    <p class="hint">계정 발급·비밀번호 재설정은 관리자에게 요청하세요.</p>
+  </form>
+</section>
+
+<!-- 2) 임시 비밀번호 변경 -->
+<section id="pw-view" class="auth" hidden>
+  <form id="pw-form" class="auth-card" novalidate>
+    <div class="auth-brand">WELLSTORY BOS</div>
+    <h1>비밀번호 변경</h1>
+    <p class="sub">처음 로그인했거나 재발급을 받은 경우 새 비밀번호를 정해야 이용할 수 있습니다.</p>
+    <label for="pw-current">현재(임시) 비밀번호</label>
+    <input id="pw-current" type="password" autocomplete="current-password" maxlength="128" required>
+    <label for="pw-new">새 비밀번호</label>
+    <input id="pw-new" type="password" autocomplete="new-password" maxlength="128" required>
+    <label for="pw-new2">새 비밀번호 확인</label>
+    <input id="pw-new2" type="password" autocomplete="new-password" maxlength="128" required>
+    <p class="hint">10자 이상, 영문과 숫자 포함, 아이디 포함 불가</p>
+    <p id="pw-error" class="auth-error" role="alert"></p>
+    <button class="primary wide" id="pw-submit" type="submit">변경하고 시작하기</button>
+    <button class="linkish" id="pw-logout" type="button">로그아웃</button>
+  </form>
+</section>
+
+<!-- 3) 업무 화면 -->
+<div id="app-view" hidden>
+  <div class="shell">
+    <aside class="side">
+      <div class="brand">WELLSTORY BOS<br>인당량 가이드</div>
+      <nav class="nav">
+        <button data-tab="portion" class="active">▤ 인당량</button>
+        <button data-tab="recipes">▣ 통합 레시피</button>
+        <button data-tab="manage">◫ 확인 항목</button>
+      </nav>
+      <small id="side-note">계정 로그인 · 권한 범위 내 자료</small>
+    </aside>
+    <div class="app">
+      <header class="header">
+        <div>
+          <h1>인당량 가이드 · 통합 레시피</h1>
+          <div class="sub">메뉴 검색 · 기준량 확인 · 식수별 조리량 환산</div>
+        </div>
+        <div class="user-box">
+          <span class="pill" id="user-name">—</span>
+          <button class="secondary small" id="logout" type="button">로그아웃</button>
+        </div>
+      </header>
+      <div class="notice" id="banner">연결 확인 중…</div>
+      <main id="main"><div class="loading">데이터를 불러오는 중입니다.</div></main>
+    </div>
+  </div>
+  <nav class="bottom">
+    <button data-tab="portion" class="active">▤ 인당량</button>
+    <button data-tab="recipes">▣ 레시피</button>
+    <button data-tab="manage">◫ 확인</button>
+  </nav>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<noscript><p class="empty">이 화면은 JavaScript가 필요합니다.</p></noscript>
+</body>
+</html>

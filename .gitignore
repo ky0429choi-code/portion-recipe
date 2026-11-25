@@ -1,0 +1,20 @@
+# 배포·계정 정보 (로컬 전용)
+.clasp.json
+.clasprc.json
+tools/deploy.local.json
+.env*
+
+# 교체 전 GAS 코드 백업 (옛 코드에 실데이터가 들어 있을 수 있음)
+backup/
+
+# 실데이터 반출 방지
+*.xlsx
+*.xls
+*.csv
+*.jsonl
+*실데이터*
+*회사자료*
+
+# 도구
+node_modules/
+.claude/

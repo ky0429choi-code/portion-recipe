@@ -1,0 +1,4 @@
+[
+  { "userId": "local.admin", "password": "LocalOnly-Admin-2026", "displayName": "로컬 관리자", "role": "ADMIN", "siteScope": "*", "mustChange": false },
+  { "userId": "local.site", "password": "LocalOnly-Temp-2026", "displayName": "로컬 사업장A", "role": "USER", "siteScope": "SITE-A", "mustChange": true }
+]

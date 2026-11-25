@@ -1,0 +1,11 @@
+{
+  "name": "portion-guide-v3",
+  "version": "3.0.0",
+  "private": true,
+  "description": "화성지역 인당량 가이드 — GitHub Pages 화면 + GAS 계정 게이트",
+  "scripts": {
+    "test": "node tests/run-all.js",
+    "dev": "node tools/dev-server.js",
+    "demo": "node -e \"process.env.DEMO='1';require('./tools/dev-server.js')\""
+  }
+}

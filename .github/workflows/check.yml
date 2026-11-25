@@ -1,0 +1,16 @@
+# 푸시할 때마다 GitHub에서 시험 + 공개 폴더 유출 검사 실행 (합성 데이터만, 외부 연결 없음)
+name: check
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node tests/run-all.js
